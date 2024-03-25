@@ -1,15 +1,10 @@
-from flask import Flask # Import the Flask class from the flask module
-
-
-# Create an instance of Flask called app which will be the central object
-app = Flask(__name__)
-
+from app import app
 
 # Define a route
 @app.route("/")
 def index():
-    first_name = 'Brian'
-    age = 55
+    first_name = 'Connor'
+    age = 25
     return 'Hello ' + first_name + ' who is ' + str(age) + ' years old'
 
 @app.route('/test')
@@ -19,7 +14,7 @@ def test():
         a_dict = {
             'id': i+1,
             'key': 'value',
-            'name': 'Brian'
+            'name': 'Connor'
         }
         my_dicts.append(a_dict)
         
