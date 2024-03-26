@@ -4,3 +4,5 @@ __pycache__/
 
 #ignore .env becuase it holds environment secrets
 .env
+
+*.db
