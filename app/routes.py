@@ -1,10 +1,7 @@
 from flask import request, render_template
 from . import app, db
-from .models import User
-from fake_data.posts import post_data
+from .models import User, Post
 
-# Will set up db later, for now we will store all Users in this users list
-users = []
 
 # Define a route
 @app.route("/")
@@ -58,23 +55,19 @@ def create_user():
 #get all posts
 @app.route('/posts')
 def get_posts():
-    #get the posts from storage(fake data -> tomorrow will be db)
-    posts = post_data
-    return posts
+    #get the posts from db
+    posts = db.session.execute(db.select(Post)).scalars().all()
+    return [p.to_dict() for p in posts]  #list comprehension calling to_dict and looping thru all posts to get them
 
     #get a single post by ID
 @app.route('/posts/<int:post_id>')
 def get_post(post_id):
-    #get the posts from storage
-    posts = post_data
-    # For each dictionary in the list of post dictionaries
-    for post in posts:
-        # If the key of 'id' matches the post_id from the URL
-        if post['id'] == post_id:
-            # Return that post dictionary
-            return post
-    # If we loop through all of the posts without returning, the post with that ID does not exist
-    return {'error': f"Post with an ID of {post_id} does not exist"}, 404
+    # Get the post from the database by ID
+    post = db.session.get(Post, post_id)
+    if post:
+        return post.to_dict()
+    else:
+        return {'error': f"Post with an ID of {post_id} does not exist"}, 404
 
 #Create a Post
 @app.route('/posts', methods=['POST']) # same url but depending on if you are making a get request or in this case a get request it will vary in what it returns
@@ -101,18 +94,9 @@ def create_post():
     title = data.get('title')
     body = data.get('body')
 
-    # Create a new post dictionary with data
-    new_post = {
-        'id': len(post_data) + 1,
-        'title': title,
-        'body': body,
-        'userId': 1,
-        'dateCreated': '2024-03-25T15:21:35',
-        'likes': 0
-    }
-
-    # Add the new post to storage (post_data -> will be db tomorrow)
-    post_data.append(new_post)
+    # Create a new post instance with data (and hard code in user id for time being)
+    new_post = Post(title=title, body=body, user_id=1)
+    
 
     # Return the newly created post dictionary with a 201 Created Status Code
-    return new_post, 201
+    return new_post.to_dict(), 201
