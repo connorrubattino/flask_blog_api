@@ -55,8 +55,12 @@ def create_user():
 #get all posts
 @app.route('/posts')
 def get_posts():
-    #get the posts from db
-    posts = db.session.execute(db.select(Post)).scalars().all()
+    select_stmt = db.select(Post)
+    search = request.args.get('search')
+    if search:
+        select_stmt = select_stmt.where(Post.title.ilike(f"%{search}%"))
+    # Get the posts from the database
+    posts = db.session.execute(select_stmt).scalars().all()
     return [p.to_dict() for p in posts]  #list comprehension calling to_dict and looping thru all posts to get them
 
     #get a single post by ID
