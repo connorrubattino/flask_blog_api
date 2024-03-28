@@ -14,6 +14,7 @@ class User(db.Model):
     posts = db.relationship('Post', back_populates='author') #matching inverse of below in post is connecting them in pyhton with relationship -- foriegn keys are for database
     token = db.Column(db.String, index=True, unique=True)
     token_expiration = db.Column(db.DateTime(timezone=True))
+    comments = db.relationship('Comment', back_populates='user')
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -62,6 +63,7 @@ class Post(db.Model):
     # In SQL - user_id INTEGER NOT NULL, FOREIGN KEY(user_id) REFERENCES user(id) -- 'user.id' below takes id from user table
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     author = db.relationship('User', back_populates='posts')  #matching inverse of up in User
+    comments = db.relationship('Comment', back_populates='post')
 
                     #anytime the database models change (new tables or column) must rerun flask db migrate -m""" and upgrade
     
@@ -82,7 +84,8 @@ class Post(db.Model):
             "title": self.title,
             "body": self.body,
             "dateCreated": self.date_created,
-            "author": self.author.to_dict() #brings in the user of the post so you can see it along with the post
+            "author": self.author.to_dict(), #brings in the user of the post so you can see it along with the post
+            "comments": [comment.to_dict() for comment in self.comments]
         }       
 
     def update(self, **kwargs):
@@ -92,3 +95,45 @@ class Post(db.Model):
             if key in allowed_fields:  
                 setattr(self, key, value) 
         self.save() 
+
+    def delete(self):
+        db.session.delete(self) # deleting THIS object from the database
+        db.session.commit() # commiting our changes
+
+
+
+# Create our Comment class/table
+class Comment(db.Model):
+    # CREATE TABLE
+    id = db.Column(db.Integer, primary_key=True)
+    body = db.Column(db.String, nullable=False)
+    date_created = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
+    post = db.relationship('Post', back_populates='comments')
+    user = db.relationship('User', back_populates='comments')
+
+    # INSERT INTO
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.save()
+
+    def __repr__(self):
+        return f"<Comment {self.id}>"
+
+    def save(self):
+        db.session.add(self)
+        db.session.commit()
+
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'body': self.body,
+            'dateCreated': self.date_created,
+            'post_id': self.post_id,
+            'user': self.user.to_dict()
+        }
